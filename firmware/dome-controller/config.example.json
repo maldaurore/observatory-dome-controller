@@ -1,0 +1,6 @@
+{
+    "ssid": "SSID",
+    "password": "password",
+    "mqtt_broker_host": "255.255.255.255",
+    "mqtt_broker_port": 1883
+}
