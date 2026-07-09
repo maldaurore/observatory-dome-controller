@@ -128,7 +128,7 @@ Device Hub supports most dome operations.
 
 However, this observatory requires additional functions that are not part of the ASCOM Dome standard, including:
 
-- Opening the shutter without opening the flap.
+- Opening the shutter without the flap.
 - Reading the flap position.
 
 These functions are available through the custom graphical interface.
@@ -153,7 +153,7 @@ Press **Connect** to establish communication with the Alpaca server.
 
 The additional controls can then be used to:
 
-- Open the shutter without opening the flap.
+- Open the shutter without the flap.
 - Read the flap position.
 
 ![Custom GUI](../images/custom-gui.png)
@@ -162,4 +162,4 @@ The additional controls can then be used to:
 
 ## Next Step
 
-Continue with **06-device-hub.md**.
+Continue with **06-dome-configuration.md**.
