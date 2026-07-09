@@ -2,6 +2,7 @@ from controller import AlpacaException, controller
 from helpers import alpaca_endpoint, alpaca_response
 from flask import Flask, Response, request
 from routes.dome_get import SUPPORTED_ACTIONS
+from logger import logger
 
 def handle_method_not_implemented(request, client_id, server_id):
     return alpaca_response(
@@ -137,7 +138,6 @@ def register_dome_put_routes(app):
     def dome_put_action(action, client_id, server_id):
         try:
             handler = COMMANDS.get(action.lower())
-            print(handler)
             if not handler:
                 return alpaca_response(
                     client_id=client_id,
@@ -156,5 +156,5 @@ def register_dome_put_routes(app):
         except Exception as e:
             return Response(f"Internal server error: {str(e)}", status=500, mimetype="text/plain")
         except Exception as e:
-            print(f"Error handling dome action '{action}': {str(e)}")
+            logger.error(f"Error handling dome action '{action}': {str(e)}")
             return Response(f"Internal server error: {str(e)}", status=500, mimetype="text/plain")

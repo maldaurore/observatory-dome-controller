@@ -2,6 +2,7 @@ import datetime
 from helpers import alpaca_endpoint, alpaca_response
 from flask import Flask, Response, request
 from controller import AlpacaException, controller
+from logger import logger
 
 SUPPORTED_ACTIONS = [ 'openwithoutflap', 'getflapstatus' ]
 
@@ -208,5 +209,5 @@ def register_dome_get_routes(app):
                 value=e.value
             )
         except Exception as e:
-            print(f"Error handling dome action '{action}': {str(e)}")
+            logger.error(f"Error handling dome action '{action}': {str(e)}")
             return Response(f"Internal server error: {str(e)}", status=500, mimetype="text/plain")

@@ -2,16 +2,11 @@ from state import DomeState
 import threading
 import datetime
 import time
+from logger import logger
 
 BASE_COMMANDS_TOPIC = "dome/base/commands"
 SHUTTER_COMMANDS_TOPIC = "dome/shutter/commands"
 HEARTBEAT_TIMEOUT = 5
-
-class Errors:
-    DEVICES_NOT_RESPONDING = 1280
-    SHUTTER_ERROR = 1281
-    DOME_STALL_ERROR = 1282
-    FIND_HOME_ERROR = 1283
 
 class AlpacaException(Exception):
     def __init__(self, number, message, value = None):
@@ -30,7 +25,7 @@ class DomeController:
         threading.Thread(target=self._heartbeat_watchdog, daemon=True).start()
 
     def start_hardware_init(self):
-        print("Verificando estado de los dispositivos...")
+        logger.info("Verificando estado de los dispositivos...")
         self.send_command(
             {"cmd": "get_state"},
             BASE_COMMANDS_TOPIC
@@ -44,11 +39,11 @@ class DomeController:
 
     def finish_connect(self):
         if not self.state.base_online:
-            print("Controlador del domo offline.")
+            logger.info("Controlador del domo offline.")
         elif not self.state.shutter_online:
-            print("Controlador de la cortina offline.")
+            logger.info("Controlador de la cortina offline.")
         else:
-            print("Ambos controladores en línea.")
+            logger.info("Ambos controladores en línea.")
 
     def _response(self, error_number=0, error_message='', value=None):
         return {
@@ -75,7 +70,6 @@ class DomeController:
             raise AlpacaException(1031, "El dispositivo no está conectado.")
         return self.state.flap_status
     
-    # TO DO: borrar flags de error
     def connect(self):
         self.state = DomeState()
         self.state.connected = True
@@ -97,7 +91,6 @@ class DomeController:
         # Enviar comando solo si el gajo está abajo y cortina está cerrada o cerrándose. Cuando la cortina está abriéndose o
         # está abierta y el gajo está abajo, se asume que se está abriedo o está abierta sin gajo y no se hace nada.
         if (self.state.flap_status == 1 and self.state.shutter_status == 1) or (self.state.flap_status == 1 and self.state.shutter_status == 3):
-            print("Abriendo domo sin gajo")
             self.send_command(
                 {"cmd": "open_without_flap"},
                 SHUTTER_COMMANDS_TOPIC
@@ -296,7 +289,7 @@ class DomeController:
                 delta = (now - self.last_base_update).total_seconds()
                 if delta > HEARTBEAT_TIMEOUT:
                     if self.state.base_online:
-                        print("Base perdido")
+                        logger.info("Controlador de domo perdido.")
                     self.state.base_online = False
 
             else:
@@ -306,7 +299,7 @@ class DomeController:
                 delta = (now - self.last_shutter_update).total_seconds()
                 if delta > HEARTBEAT_TIMEOUT:
                     if self.state.shutter_online:
-                        print("Shutter perdido")
+                        logger.info("Controlador de cortina perdido.")
                     self.state.shutter_online = False
             else:
                 self.state.shutter_online = False

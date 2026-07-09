@@ -2,8 +2,6 @@ from machine import Pin, Encoder
 import time
 import ujson as json
 
-# TO DO: poner timestamps en logs
-
 PULSOS_POR_ROTACION = 118745
 PULSOS_POR_GRADO =  PULSOS_POR_ROTACION / 360
 HOME_POSITION = 146.0
@@ -46,7 +44,7 @@ class Base:
     self.last_encoder_value = self.encoder.value()
     self.encoder_stall_timer = None
 
-    self.initialized = False
+    self.referenced = False
 
     # Pines del motor
     self.motor_right = Pin(26, Pin.OUT)
@@ -63,9 +61,6 @@ class Base:
 
     self.publishState()
 
-    print(f"Pulsos por revolución: {PULSOS_POR_ROTACION}")
-    print(f"Pulsos por grado: {PULSOS_POR_GRADO}")
-
   def _check_encoder_stall(self):
     current = self.encoder.value()
     now = time.ticks_ms()
@@ -76,7 +71,7 @@ class Base:
         return False
 
     if time.ticks_diff(now, self.encoder_stall_timer) > 2000:
-        print("No se detectó movimiento del codificador.")
+        print("ERROR: no se detectó movimiento del codificador.")
         self.abort_requested = True
         return True
 
@@ -85,7 +80,7 @@ class Base:
   def _check_find_home_timeout(self):
     now = time.ticks_ms()
     if time.ticks_diff(now, self.find_home_start_time) > FIND_HOME_TIMEOUT:
-      print("No se pudo encontrar home.")
+      print("ERROR: no se pudo encontrar home.")
       self.abort_requested = True
       return True
     
@@ -103,22 +98,19 @@ class Base:
       self.Slaved = False
 
   def abortSlew(self, payload):
-    print('Abortando movimiento.')
     self.abort_requested = True
 
   def handleAtHome(self):
-    self.initialized = True
+    self.referenced = True
     self.state["at_home"] = True
     self.state["at_park"] = True
     self.state["azimuth"] = HOME_POSITION
     self.encoder.value(int(HOME_POSITION * PULSOS_POR_GRADO))
 
   def findHome(self, payload):
-    print('Buscando home.')
     
     # Si se encuentra en home, retorna.
     if self.home_sensor.value() == 0:
-      print("En home.")
       self.handleAtHome()
       return
     
@@ -142,7 +134,7 @@ class Base:
     self.homing_state = "search"
     self.home_confirm_count = 0
 
-    if self.initialized:
+    if self.referenced:
 
       delta = self._angular_delta(HOME_POSITION, self.state["azimuth"])
       self._stop_motors()
@@ -162,8 +154,6 @@ class Base:
     return
 
   def park(self, payload):
-    print('Moviendo a posición de park.')
-
     # Si ya se encuentra en posición de park (que es la misma que home), retorna.
     if self.home_sensor.value() == 0:
       return
@@ -179,7 +169,7 @@ class Base:
     self.last_encoder_value = self.encoder.value()
     self.find_home_start_time = time.ticks_ms()
 
-    if self.initialized:
+    if self.referenced:
 
       delta = self._angular_delta(HOME_POSITION, self.state["azimuth"])
       self._stop_motors()
@@ -199,8 +189,8 @@ class Base:
 
   def slewToAzimuth(self, payload):
 
-    if not self.initialized:
-      print("Domo no inicializado.")
+    if not self.referenced:
+      print("ERROR: domo no referenciado.")
       return
 
     desiredAzimuth = float(payload["azimuth"])
@@ -246,7 +236,7 @@ class Base:
       self.abort_requested = False
       return
     
-    if self.initialized:
+    if self.referenced:
         self._update_azimuth()
 
     if self.slewing_to_azimuth:
@@ -291,7 +281,6 @@ class Base:
           self.desiredAzimuth = None
           self.motor_stop_time = None
           self.movement_direction = None
-          print("Movimiento completado.")
       else:
         self.motor_stop_time = now
 
@@ -310,7 +299,6 @@ class Base:
     # Buscando home a velocidad normal
     if self.homing_state == "search":
       if home_sensor == 0:
-        print("Home detectado por primera vez.")
         self._stop_motors()
         self.homing_state = "wait_stop"
         self.home_detect_time = time.ticks_ms()
@@ -318,7 +306,6 @@ class Base:
     # Esperando a que se detenga la cupula
     elif self.homing_state == "wait_stop":
       if time.ticks_diff(time.ticks_ms(), self.home_detect_time) > 1000:
-        print("Iniciando ajuste fino.")
         self.homing_state = "fine_back"
         self.fine_steps = 0
 
@@ -329,7 +316,6 @@ class Base:
         self.home_confirm_count = 0
 
       if self.home_confirm_count >= 3:
-        print("Home confirmado.")
         self._stop_motors()
         self.slewing_to_home = False
         self.homing_state = None
@@ -338,7 +324,7 @@ class Base:
         return
       
       if self.fine_steps > 50:
-        print("No se pudo centrar home.")
+        print("ERROR: no se pudo centrar home.")
         self._stop_motors()
         self.slewing_to_home = False
         self.homing_state = None
@@ -366,7 +352,6 @@ class Base:
           self.slewing_to_park = False
           self.motor_stop_time = None
           self.handleAtHome()
-          print('Park completado')
       else:
         self.motor_stop_time = now
   

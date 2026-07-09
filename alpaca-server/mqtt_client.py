@@ -1,5 +1,6 @@
 import json
 import paho.mqtt.client as mqtt
+from logger import logger
 
 class MqttClient:
     def __init__(self):
@@ -34,6 +35,6 @@ class MqttClient:
         try:
             event = json.loads(raw)
         except Exception as e:
-            print("JSON ERROR:", e)
+            logger.error("JSON ERROR:", e)
             return
         self.on_event(event)

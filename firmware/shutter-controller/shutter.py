@@ -2,8 +2,6 @@ from machine import Pin
 import time
 import ujson as json
 
-# TO DO: añadir timestamps en logs
-
 class Actions:
   OPEN = 0
   FREE_FLAP = 2
@@ -73,7 +71,6 @@ class Shutter:
     if self.state["shutter_status"] != ShutterStatus.CLOSED:
       return
     
-    print("Liberando gajo...")
     now = time.ticks_ms()
     self.desired_action = DesiredActions.OPEN_WITHOUT_FLAP
     self.current_action = Actions.FREE_FLAP
@@ -84,7 +81,6 @@ class Shutter:
     return
   
   def abortSlew(self):    
-    print('Abortando movimiento.')
     self.abort_requested = True
     return
   
@@ -94,7 +90,6 @@ class Shutter:
       ):
       return
     
-    print('Closing shutter')
     self._stop_motors()
     self.desired_action = DesiredActions.CLOSE
     self.current_action = Actions.CLOSE
@@ -111,7 +106,6 @@ class Shutter:
       ):
       return
 
-    print("Abriendo cortina.")
     
     self.desired_action = DesiredActions.OPEN
     self._stop_motors()
@@ -162,7 +156,7 @@ class Shutter:
       timeout = self.ACTION_TIMEOUTS.get(self.current_action, None)
       if timeout is not None:
         if time.ticks_diff(now, self.action_start_time) > timeout:
-          print("ERROR: timeout en acción", self.current_action)
+          print("ERROR: tiempo de espera excedido en acción", self.current_action)
           self._stop_motors()
           self.desired_action = None
           self.action_start_time = None
@@ -220,7 +214,6 @@ class Shutter:
         self.action_start_time = now
 
         self.open_confirm_start = None
-        print('Cortina abierta.')
     else:
       self.open_confirm_start = None
 
@@ -237,14 +230,12 @@ class Shutter:
         self.action_start_time = now
 
         self.close_confirm_start = None
-        print("Cortina cerrada.")
     else:
       self.close_confirm_start = None
   
   def _update_free_flap(self):
     now = time.ticks_ms()
     if time.ticks_diff(now, self.action_start_time) > 1000:
-      print("Gajo liberado, abriendo cortina...")
       self._stop_motors()
       self.current_action = Actions.OPEN
       self.action_start_time = time.ticks_ms()
@@ -254,7 +245,6 @@ class Shutter:
   def _update_release_flap_hook(self):
     now = time.ticks_ms()
     if time.ticks_diff(now, self.action_start_time) > 1000:
-      print("Gancho en posición de reposo.")
       self._stop_motors()
 
       if self.desired_action == DesiredActions.OPEN:

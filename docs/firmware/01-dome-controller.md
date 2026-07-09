@@ -119,8 +119,6 @@ Configuración IP: (...)
 Conectando al broker MQTT en <broker_ip>...
 Conectado al broker MQTT
 Suscrito a b'dome/base/commands'
-Pulsos por revolución: 118440
-Pulsos por grado: 329.0
 Dispositivo listo.
 ```
 
