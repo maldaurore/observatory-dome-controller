@@ -7,7 +7,7 @@ PULSOS_POR_GRADO =  PULSOS_POR_ROTACION / 360
 HOME_POSITION = 146.0
 FIND_HOME_TIMEOUT = 60000
 TOLERANCIA = 2
-UMBRAL_MOVIMIENTO = 3
+UMBRAL_INERCIA = 5
 INERCIA = 3
 
 class Base:
@@ -39,6 +39,7 @@ class Base:
     self.pulse_start = 0
     self.pulse_duration = 0
     self.movement_direction = None # 0 izquierda, 1 derecha
+    self.use_inertia_stop = False
 
     self.encoder = Encoder(0, Pin(25), Pin(33), x=4)
     self.last_encoder_value = self.encoder.value()
@@ -196,7 +197,12 @@ class Base:
     desiredAzimuth = float(payload["azimuth"])
     delta = self._angular_delta(desiredAzimuth, self.state["azimuth"])
     dist = abs(delta)
-    if dist < UMBRAL_MOVIMIENTO:
+    print(dist)
+    if dist > UMBRAL_INERCIA:
+      self.use_inertia_stop = True
+    elif dist > TOLERANCIA:
+      self.use_inertia_stop = False    
+    if dist < TOLERANCIA:
       return
     
     if self.slewing_to_park or self.slewing_to_home:
@@ -206,6 +212,7 @@ class Base:
     self.encoder_stall_timer = time.ticks_ms()
     self.last_encoder_value = self.encoder.value()
     
+    self.motor_stop_time = None
     self.slewing_to_azimuth = True
     self.desiredAzimuth = desiredAzimuth
     self.abort_requested = False
@@ -215,7 +222,7 @@ class Base:
     self.movement_direction = direction 
     self._move(direction)
 
-    return 'Moviendo a azimut.'
+    return
 
   def getState(self, payload):
     self.publishState()
@@ -268,11 +275,18 @@ class Base:
     dist = abs(delta)
     now = time.ticks_ms()
 
-    if dist >= TOLERANCIA:
-      if self._check_encoder_stall():
-        return
+    if dist >= TOLERANCIA and self._check_encoder_stall():
+      return
+      
+    if dist <= TOLERANCIA and not self.use_inertia_stop :
+      self._stop_motors()
+      self.slewing_to_azimuth = False
+      self.desiredAzimuth = None
+      self.motor_stop_time = None
+      self.movement_direction = None
+      return
 
-    if dist < INERCIA:
+    if self.use_inertia_stop and dist < INERCIA:
       self._stop_motors()
 
       if self.motor_stop_time:
