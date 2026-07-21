@@ -71,7 +71,6 @@ class DomeController:
         return self.state.flap_status
     
     def connect(self):
-        self.state = DomeState()
         self.state.connected = True
         return
     
@@ -169,6 +168,7 @@ class DomeController:
             },
             BASE_COMMANDS_TOPIC
         )
+        self.state.slewing = True
 
     def get_at_home(self):
         if not self.state.connected:
