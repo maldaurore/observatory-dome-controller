@@ -19,7 +19,6 @@ class ShutterStatus:
     OPENING = 2
     CLOSING = 3
     ERROR = 4
-    UNKNOWN = 5
 
 class FlapStatus:
     UP = 0
