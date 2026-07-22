@@ -68,7 +68,7 @@ class SimpleMQTTWrapper:
             retain=True,
             qos=0
         )
-        c.set_callbacl(self._internal_callback)
+        c.set_callback(self._internal_callback)
         return c
 
     def publish_message(self, payload):
