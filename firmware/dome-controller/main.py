@@ -2,6 +2,7 @@ import json
 import time
 from base import Base
 from mqtt_client import client
+from machine import Pin, Encoder
 
 device = Base(client)
 
@@ -51,3 +52,58 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def medir_pulsos_por_vuelta(self, vueltas=10):
+    encoder = device.encoder
+    home_sensor = Pin(14, Pin.IN, Pin.PULL_UP)
+
+    DEBOUNCE_MS = 1000
+
+    cuentas = []
+
+    print("Esperando punto HOME...")
+
+    # Esperar a que el sensor esté activo
+    while home_sensor.value():
+        pass
+
+    # Esperar a salir del sensor
+    while not home_sensor.value():
+        pass
+
+    encoder.value(0)
+    ultimo_disparo = time.ticks_ms()
+
+    print("Iniciando medición...")
+
+    while len(cuentas) < vueltas:
+
+        if not home_sensor.value():
+
+            ahora = time.ticks_ms()
+
+            if time.ticks_diff(ahora, ultimo_disparo) > DEBOUNCE_MS:
+
+                pulsos = encoder.value()
+
+                cuentas.append(pulsos)
+
+                print(f"Vuelta {len(cuentas)}: {pulsos} pulsos")
+
+                encoder.value(0)
+
+                ultimo_disparo = ahora
+
+                # Esperar a abandonar el sensor para no contar dos veces
+                while not home_sensor.value():
+                    pass
+
+    promedio = sum(cuentas) / len(cuentas)
+
+    print("\nResultados:")
+    for i, c in enumerate(cuentas, 1):
+        print(f"Vuelta {i}: {c}")
+
+    print(f"\nPromedio: {promedio:.2f} pulsos/vuelta")
+
+    return promedio, cuentas
