@@ -21,7 +21,7 @@ def on_message(client, msg):
     
         if cmd in COMMANDS:
             handler = COMMANDS[cmd]
-            return handler(payload)
+            return handler()
     
     except Exception as e:
         print(f"Error procesando mensaje: {e}")
