@@ -161,7 +161,7 @@ class DomeController:
                 message="Valor de azimut inválido. Debe ser entre 0 y 360."
             ) 
 
-        logger.info("Acimut solicitado: ", az)
+        logger.info("Acimut solicitado: %s", az)
 
         self.send_command(
             {
