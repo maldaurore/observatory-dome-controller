@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+
 from alpaca.dome import Dome
 from alpaca.exceptions import InvalidOperationException, ValueNotSetException
 
 
 ALPACA_IP = "localhost:5000"
 DEVICE_NUM = 0
+
 
 shutterStateLabels = {
     0: "Abierta",
@@ -27,7 +29,8 @@ class DomeGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Control de Domo")
-        self.root.geometry("420x700")
+        self.root.geometry("600x300")
+        self.root.minsize(600, 300)
 
         self.dome = Dome(ALPACA_IP, DEVICE_NUM)
         self.connected = False
@@ -35,172 +38,324 @@ class DomeGUI:
         self.create_widgets()
         self.update_status()
 
+    # ============================================================
+    # INTERFAZ
+    # ============================================================
+
     def create_widgets(self):
 
-        # Conexión
-        conn_frame = ttk.LabelFrame(
+        # --------------------------------------------------------
+        # BLOQUE 1: CONEXIÓN + ESTADO
+        # --------------------------------------------------------
+
+        top_frame = ttk.LabelFrame(
             self.root,
-            text="Conexión"
+            text="Conexión y estado"
         )
-        conn_frame.pack(
+
+        top_frame.pack(
             fill="x",
             padx=10,
-            pady=5
+            pady=(10, 5)
         )
+
+        top_frame.columnconfigure(0, weight=1)
+        top_frame.columnconfigure(1, weight=1)
+
+        connection_frame = ttk.Frame(top_frame)
+
+        connection_frame.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=10,
+            pady=15
+        )
+
+        connection_frame.columnconfigure(0, weight=1)
 
         self.conn_label = ttk.Label(
-            conn_frame,
+            connection_frame,
             text="Desconectado"
         )
-        self.conn_label.pack(pady=5)
 
-        ttk.Button(
-            conn_frame,
-            text="Conectar",
-            command=self.connect
-        ).pack(pady=2)
-
-        ttk.Button(
-            conn_frame,
-            text="Desconectar",
-            command=self.disconnect
-        ).pack(pady=2)
-
-        # Estado
-        status_frame = ttk.LabelFrame(
-            self.root,
-            text="Estado"
+        self.conn_label.grid(
+            row=0,
+            column=0,
+            pady=(5, 10)
         )
-        status_frame.pack(
-            fill="x",
+
+        self.connect_button = ttk.Button(
+            connection_frame,
+            text="Conectar",
+            command=self.toggle_connection
+        )
+
+        self.connect_button.grid(
+            row=1,
+            column=0
+        )
+
+        status_frame = ttk.Frame(top_frame)
+
+        status_frame.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
             padx=10,
-            pady=5
+            pady=15
+        )
+
+        status_frame.columnconfigure(0, weight=1)
+        status_info = ttk.Frame(status_frame)
+
+        status_info.grid(
+            row=0,
+            column=0
         )
 
         self.az_label = ttk.Label(
-            status_frame,
-            text="Azimut: ---"
+            status_info,
+            text="Acimut: ---"
         )
-        self.az_label.pack()
+
+        self.az_label.grid(
+            row=0,
+            column=0,
+            sticky="w",
+            pady=2
+        )
 
         self.shutter_label = ttk.Label(
-            status_frame,
+            status_info,
             text="Cortina: ---"
         )
-        self.shutter_label.pack()
+
+        self.shutter_label.grid(
+            row=1,
+            column=0,
+            sticky="w",
+            pady=2
+        )
 
         self.flap_label = ttk.Label(
-            status_frame,
+            status_info,
             text="Gajo: ---"
         )
-        self.flap_label.pack()
 
-        self.slave_label = ttk.Label(
-            status_frame,
-            text="Slaved: ---"
+        self.flap_label.grid(
+            row=2,
+            column=0,
+            sticky="w",
+            pady=2
         )
-        self.slave_label.pack()
 
         self.error_label = ttk.Label(
-            status_frame,
+            status_info,
             text="Estado: Sin errores",
-            wraplength=380
+            wraplength=260
         )
-        self.error_label.pack(pady=5)
 
-        ttk.Button(
+        self.error_label.grid(
+            row=3,
+            column=0,
+            sticky="w",
+            pady=2
+        )
+
+        self.clear_error_button = ttk.Button(
             status_frame,
             text="Limpiar error",
             command=self.clear_error
-        ).pack(pady=3)
-
-        # Control de azimut
-        az_frame = ttk.LabelFrame(
-            self.root,
-            text="Control de Azimut"
         )
-        az_frame.pack(
+
+        self.clear_error_button.grid(
+            row=1,
+            column=0,
+            pady=(8, 0)
+        )
+
+        # --------------------------------------------------------
+        # BLOQUE 2: ACCIONES DE MOVIMIENTO
+        # --------------------------------------------------------
+
+        movement_frame = ttk.LabelFrame(
+            self.root,
+            text="Acciones de movimiento"
+        )
+
+        movement_frame.pack(
             fill="x",
             padx=10,
             pady=5
         )
 
-        self.az_entry = ttk.Entry(az_frame)
-        self.az_entry.pack(pady=5)
+        for column in range(5):
+            movement_frame.columnconfigure(
+                column,
+                weight=1
+            )
+
+        # --------------------------------------------------------
+        # Ir a acimut
+        # --------------------------------------------------------
+
+        az_frame = ttk.Frame(movement_frame)
+
+        az_frame.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=10,
+            pady=10
+        )
+
+        az_control = ttk.Frame(az_frame)
+
+        az_control.pack(
+            expand=True
+        )
+
+        self.az_entry = ttk.Entry(
+            az_control,
+            width=8
+        )
+
+        self.az_entry.pack(
+            side="left"
+        )
 
         ttk.Button(
-            az_frame,
-            text="Girar a azimut",
+            az_control,
+            text="Ir",
             command=self.slew_to_az
-        ).pack(pady=5)
-
-        # Acciones principales
-        main_frame = ttk.LabelFrame(
-            self.root,
-            text="Acciones principales"
+        ).pack(
+            side="left",
+            padx=(5, 0)
         )
-        main_frame.pack(
-            fill="x",
+
+        
+        # --------------------------------------------------------
+        # Abortar movimiento
+        # --------------------------------------------------------
+
+        abort_frame = ttk.Frame(movement_frame)
+
+        abort_frame.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
             padx=10,
-            pady=5
+            pady=10
+        )
+
+        self.abort_canvas = tk.Canvas(
+            abort_frame,
+            width=46,
+            height=46,
+            highlightthickness=0
+        )
+
+        self.abort_canvas.pack(
+            expand=True
+        )
+
+        self.abort_canvas.create_oval(
+            5,
+            5,
+            41,
+            41,
+            fill="#d32f2f",
+            outline="#b71c1c",
+            width=1,
+            tags="abort"
+        )
+
+        self.abort_canvas.create_rectangle(
+            19,
+            19,
+            27,
+            27,
+            fill="white",
+            outline="white",
+            tags="abort"
+        )
+
+        self.abort_canvas.tag_bind(
+            "abort",
+            "<Button-1>",
+            lambda event: self.abort_slew()
+        )
+
+        # --------------------------------------------------------
+        # Home + Park
+        # --------------------------------------------------------
+
+        home_park_frame = ttk.Frame(movement_frame)
+
+        home_park_frame.grid(
+            row=0,
+            column=2,
+            sticky="nsew",
+            padx=10,
+            pady=10
+        )
+
+        home_park_frame.columnconfigure(
+            0,
+            weight=1
         )
 
         ttk.Button(
-            main_frame,
-            text="Find Home",
+            home_park_frame,
+            text="Ir a Home",
             command=self.find_home
         ).pack(
-            fill="x",
-            pady=2
+            pady=(0, 4)
         )
 
         ttk.Button(
-            main_frame,
+            home_park_frame,
             text="Park",
             command=self.park
-        ).pack(
-            fill="x",
-            pady=2
-        )
+        ).pack()
 
-        # Shutter
-        shutter_frame = ttk.LabelFrame(
-            self.root,
-            text="Control de Shutter"
-        )
-        shutter_frame.pack(
-            fill="x",
+        # --------------------------------------------------------
+        # Cortina
+        # --------------------------------------------------------
+
+        shutter_frame = ttk.Frame(movement_frame)
+
+        shutter_frame.grid(
+            row=0,
+            column=3,
+            sticky="nsew",
             padx=10,
-            pady=5
+            pady=10
         )
 
-        ttk.Button(
+        self.shutter_button = ttk.Button(
             shutter_frame,
-            text="Abrir",
-            command=self.open_shutter
-        ).pack(
-            fill="x",
-            pady=2
+            text="Abrir cortina",
+            command=self.toggle_shutter
         )
 
-        ttk.Button(
-            shutter_frame,
-            text="Cerrar",
-            command=self.close_shutter
-        ).pack(
-            fill="x",
-            pady=2
+        self.shutter_button.pack(
+            expand=True
         )
 
-        # Funciones especiales
-        special_frame = ttk.LabelFrame(
-            self.root,
-            text="Funciones especiales"
-        )
-        special_frame.pack(
-            fill="x",
+        # --------------------------------------------------------
+        # Abrir sin gajo
+        # --------------------------------------------------------
+
+        special_frame = ttk.Frame(movement_frame)
+
+        special_frame.grid(
+            row=0,
+            column=4,
+            sticky="nsew",
             padx=10,
-            pady=5
+            pady=10
         )
 
         ttk.Button(
@@ -208,63 +363,32 @@ class DomeGUI:
             text="Abrir sin gajo",
             command=self.open_without_flap
         ).pack(
-            fill="x",
-            pady=2
+            expand=True
         )
 
-        ttk.Button(
-            special_frame,
-            text="Obtener estado del gajo",
-            command=self.get_flap_status
-        ).pack(
-            fill="x",
-            pady=2
-        )
 
-        # Modo Slaved
-        slave_frame = ttk.LabelFrame(
-            self.root,
-            text="Modo Slaved"
-        )
-        slave_frame.pack(
-            fill="x",
-            padx=10,
-            pady=5
-        )
+    # ============================================================
+    # CONEXIÓN
+    # ============================================================
 
-        self.slave_var = tk.BooleanVar()
-
-        ttk.Checkbutton(
-            slave_frame,
-            text="Slaved",
-            variable=self.slave_var,
-            command=self.toggle_slave
-        ).pack()
-
-        # Abortar movimiento
-        abort_frame = ttk.LabelFrame(
-            self.root,
-            text="Abortar movimiento"
-        )
-        abort_frame.pack(
-            fill="x",
-            padx=10,
-            pady=5
-        )
-
-        ttk.Button(
-            abort_frame,
-            text="Abortar movimiento",
-            command=self.abort_slew
-        ).pack()
-
-    # Conexión
+    def toggle_connection(self):
+        if self.connected:
+            self.disconnect()
+        else:
+            self.connect()
 
     def connect(self):
         try:
             self.dome.Connected = True
             self.connected = True
-            self.conn_label.config(text="Conectado")
+
+            self.conn_label.config(
+                text="Conectado"
+            )
+
+            self.connect_button.config(
+                text="Desconectar"
+            )
 
         except Exception as e:
             messagebox.showerror(
@@ -276,7 +400,31 @@ class DomeGUI:
         try:
             self.dome.Connected = False
             self.connected = False
-            self.conn_label.config(text="Desconectado")
+
+            self.conn_label.config(
+                text="Desconectado"
+            )
+
+            self.connect_button.config(
+                text="Conectar"
+            )
+
+            # Limpiar valores mostrados
+            self.az_label.config(
+                text="Acimut: ---"
+            )
+
+            self.shutter_label.config(
+                text="Cortina: ---"
+            )
+
+            self.flap_label.config(
+                text="Gajo: ---"
+            )
+
+            self.error_label.config(
+                text="Estado: Sin errores"
+            )
 
         except Exception as e:
             messagebox.showerror(
@@ -284,23 +432,68 @@ class DomeGUI:
                 str(e)
             )
 
-    # Funciones ASCOM
+    # ============================================================
+    # FUNCIONES ASCOM
+    # ============================================================
+
+    def toggle_shutter(self):
+        if not self.connected:
+            messagebox.showwarning(
+                "Aviso",
+                "Domo no conectado"
+            )
+            return
+
+        try:
+            status = self.dome.ShutterStatus
+
+            if status == 1:
+                self.dome.OpenShutter()
+
+            elif status == 0:
+                self.dome.CloseShutter()
+
+            else:
+                messagebox.showwarning(
+                    "Aviso",
+                    "La cortina está en movimiento o en estado de error."
+                )
+
+        except Exception as e:
+            self.show_error(str(e))
 
     def open_shutter(self):
-        self.safe_call(self.dome.OpenShutter)
+        self.safe_call(
+            self.dome.OpenShutter
+        )
 
     def close_shutter(self):
-        self.safe_call(self.dome.CloseShutter)
+        self.safe_call(
+            self.dome.CloseShutter
+        )
 
     def find_home(self):
-        self.safe_call(self.dome.FindHome)
+        self.safe_call(
+            self.dome.FindHome
+        )
 
     def park(self):
-        self.safe_call(self.dome.Park)
+        self.safe_call(
+            self.dome.Park
+        )
 
     def slew_to_az(self):
         try:
-            az = float(self.az_entry.get())
+            az = float(
+                self.az_entry.get()
+            )
+
+            if az < 0 or az >= 360:
+                messagebox.showerror(
+                    "Error",
+                    "El acimut debe estar entre 0 y 359.99 grados."
+                )
+                return
 
             self.safe_call(
                 lambda: self.dome.SlewToAzimuth(az)
@@ -309,19 +502,12 @@ class DomeGUI:
         except ValueError:
             messagebox.showerror(
                 "Error",
-                "Azimut inválido"
+                "Acimut inválido"
             )
 
-    def toggle_slave(self):
-        self.safe_call(
-            lambda: setattr(
-                self.dome,
-                "Slaved",
-                self.slave_var.get()
-            )
-        )
-
-    # Funciones personalizadas
+    # ============================================================
+    # FUNCIONES PERSONALIZADAS
+    # ============================================================
 
     def open_without_flap(self):
         self.safe_call(
@@ -339,11 +525,13 @@ class DomeGUI:
             )
 
             self.flap_label.config(
-                text=f"Gajo: {flapStatusLabels[status]}"
+                text=f"Gajo: {flapStatusLabels.get(status, 'Desconocido')}"
             )
 
         except Exception as e:
-            self.show_error(str(e))
+            print(
+                f"Excepción al consultar estado del gajo: {e}"
+            )
 
     def get_error(self):
         try:
@@ -373,12 +561,15 @@ class DomeGUI:
             )
 
         except Exception as e:
-            self.show_error(str(e))
+            self.show_error(
+                str(e)
+            )
 
-    # Error
+    # ============================================================
+    # ERROR
+    # ============================================================
 
     def update_error_status(self):
-
         result = self.get_error()
 
         if result is None:
@@ -407,20 +598,20 @@ class DomeGUI:
                     f"{error_message}"
                 )
             else:
-                text = f"ERROR {error_number}"
+                text = (
+                    f"ERROR {error_number}"
+                )
 
             self.error_label.config(
                 text=text
             )
 
         else:
-
             self.error_label.config(
                 text="Estado: Sin errores"
             )
 
     def show_error(self, message):
-
         self.error_label.config(
             text=f"ERROR: {message}"
         )
@@ -430,7 +621,9 @@ class DomeGUI:
             message
         )
 
-    # Utilidades
+    # ============================================================
+    # UTILIDADES
+    # ============================================================
 
     def safe_call(self, func):
 
@@ -445,12 +638,17 @@ class DomeGUI:
             func()
 
         except Exception as e:
-            self.show_error(str(e))
+            self.show_error(
+                str(e)
+            )
 
-    # Actualización de estado
+    # ============================================================
+    # ACTUALIZACIÓN DE ESTADO
+    # ============================================================
 
     def update_status(self):
 
+        # Volver a ejecutar en 1 segundo
         self.root.after(
             1000,
             self.update_status
@@ -459,84 +657,115 @@ class DomeGUI:
         if not self.connected:
             return
 
-        properties = [
-            (
-                "Azimuth",
-                self.az_label,
-                "Azimut: {:.2f}",
-                "Azimut"
-            ),
-            (
-                "ShutterStatus",
-                self.shutter_label,
-                "Cortina: {}",
-                "Cortina"
-            ),
-            (
-                "Slaved",
-                self.slave_label,
-                "Slaved: {}",
-                "Slaved"
+        # --------------------------------------------------------
+        # Acimut
+        # --------------------------------------------------------
+
+        try:
+            azimuth = self.dome.Azimuth
+
+            self.az_label.config(
+                text=f"Acimut: {azimuth:.2f}°"
             )
-        ]
 
-        for attr, label, fmt, name in properties:
+        except InvalidOperationException:
+            self.az_label.config(
+                text="Acimut: Offline"
+            )
 
-            try:
+        except ValueNotSetException:
+            self.az_label.config(
+                text="Acimut: Offline"
+            )
 
-                value = getattr(
-                    self.dome,
-                    attr
+        except Exception as e:
+            print(
+                f"Excepción al consultar Azimuth: {e}"
+            )
+
+            self.az_label.config(
+                text="Acimut: Error"
+            )
+
+        # --------------------------------------------------------
+        # Cortina
+        # --------------------------------------------------------
+
+        try:
+            shutter_status = self.dome.ShutterStatus
+
+            self.shutter_label.config(
+                text=(
+                    "Cortina: "
+                    f"{shutterStateLabels.get(
+                        shutter_status,
+                        "Desconocida"
+                    )}"
+                )
+            )
+
+            if shutter_status == 0:
+                self.shutter_button.config(
+                    text="Cerrar cortina",
+                    state="normal"
+                )
+            elif shutter_status == 1:
+                self.shutter_button.config(
+                    text="Abrir cortina",
+                    state="normal"
+                )
+            else:
+                self.shutter_button.config(
+                    state="disabled"
                 )
 
-                if attr == "ShutterStatus":
+        except InvalidOperationException:
+            self.shutter_label.config(
+                text="Cortina: Offline"
+            )
 
-                    label.config(
-                        text=fmt.format(
-                            shutterStateLabels[value]
-                        )
-                    )
+        except ValueNotSetException:
+            self.shutter_label.config(
+                text="Cortina: Offline"
+            )
 
-                else:
+        except Exception as e:
+            print(
+                f"Excepción al consultar ShutterStatus: {e}"
+            )
 
-                    label.config(
-                        text=fmt.format(value)
-                    )
+            self.shutter_label.config(
+                text="Cortina: Error"
+            )
 
-            except InvalidOperationException:
+        self.get_flap_status()
 
-                label.config(
-                    text=f"{name}: Offline"
-                )
-
-            except ValueNotSetException:
-
-                label.config(
-                    text=f"{name}: Offline"
-                )
-
-            except Exception as e:
-
-                print(
-                    f"Excepción al consultar "
-                    f"{attr}: {e}"
-                )
-
-                label.config(
-                    text=f"{attr}: Error"
-                )
+        # --------------------------------------------------------
+        # Error
+        # --------------------------------------------------------
 
         self.update_error_status()
 
+    # ============================================================
+    # ABORTAR MOVIMIENTO
+    # ============================================================
+
     def abort_slew(self):
 
-        if self.connected:
+        if not self.connected:
+            messagebox.showwarning(
+                "Aviso",
+                "Domo no conectado"
+            )
+            return
 
-            try:
-                self.dome.AbortSlew()
+        try:
+            self.dome.AbortSlew()
 
-            except Exception as e:
-                self.show_error(str(e))
+        except Exception as e:
+            self.show_error(
+                str(e)
+            )
 
 
 if __name__ == "__main__":
@@ -546,4 +775,3 @@ if __name__ == "__main__":
     app = DomeGUI(root)
 
     root.mainloop()
-
