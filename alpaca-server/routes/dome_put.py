@@ -50,6 +50,7 @@ def handle_action(request, client_id, server_id):
                 }
             )
         case 'clearerror':
+            logger.info("Limpiando error")
             controller.clear_error()
 
             return alpaca_response(
