@@ -293,6 +293,7 @@ class DomeController:
             raise AlpacaException(1031, "El dispositivo no está conectado.")
 
         if self.state.error:
+            logger.info("CLEAR ERROR: enviando a BASE")
             self.send_command(
                 {
                     "cmd": "clearerror",
@@ -300,12 +301,16 @@ class DomeController:
                 BASE_COMMANDS_TOPIC
             )
 
+            logger.info("CLEAR ERROR: enviando a SHUTTER")
+
             self.send_command(
                 {
                     "cmd": "clearerror",
                 },
                 SHUTTER_COMMANDS_TOPIC
             )
+
+            logger.info("CLEAR ERROR: ambos enviados")
 
     def on_hardware_event(self, event):
         if "base_online" in event:
