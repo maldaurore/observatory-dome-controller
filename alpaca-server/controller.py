@@ -12,6 +12,8 @@ ERROR_MESSAGES = {
     1282: "No se detectó movimiento del codificador.",
     1283: "No se pudo encontrar home.",
     1284: "Ocurrió un error inesperado en tiempo de ejecución.",
+    1285: "No se detectó señal de finalización de apertura de la cortina.",
+    1286: "No se detectó señal de finalización de cierre de la cortina."
 }
 
 class AlpacaException(Exception):
@@ -101,7 +103,7 @@ class DomeController:
         # está abierta y el gajo está abajo, se asume que se está abriedo o está abierta sin gajo y no se hace nada.
         if (self.state.flap_status == 1 and self.state.shutter_status == 1) or (self.state.flap_status == 1 and self.state.shutter_status == 3):
             self.send_command(
-                {"cmd": "open_without_flap"},
+                {"cmd": "openwithoutflap"},
                 SHUTTER_COMMANDS_TOPIC
             )
             return
