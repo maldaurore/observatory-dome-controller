@@ -29,13 +29,34 @@ def handle_action(request, client_id, server_id):
             message=f"Acción '{action}' no reconocida."
         )
 
-    if action == 'openwithoutflap':
-        controller.open_without_flap()
-        return alpaca_response(client_id=client_id, server_id=server_id, value='Abriendo cortina sin gajo.')
+    match action:
+        case 'openwithoutflap':
+            controller.open_without_flap()
+            return alpaca_response(client_id=client_id, server_id=server_id, value='Abriendo cortina sin gajo.')
+        case 'getflapstatus':
+            flap_status = controller.get_flap_status()
+            return alpaca_response(client_id=client_id, server_id=server_id, value=flap_status)
+        case 'geterror':
+            error_number = controller.state.error_number
+            error_message = controller.state.error_message
 
-    if action == 'getflapstatus':
-        flap_status = controller.get_flap_status()
-        return alpaca_response(client_id=client_id, server_id=server_id, value=flap_status)
+            return alpaca_response(
+                client_id=client_id,
+                server_id=server_id,
+                value={
+                    "Error": controller.state.error,
+                    "ErrorNumber": error_number,
+                    "ErrorMessage": error_message
+                }
+            )
+        case 'clearerror':
+            controller.clear_error()
+
+            return alpaca_response(
+                client_id=client_id,
+                server_id=server_id,
+                value="Solicitud de limpieza de error enviada."
+            )
     
 def handle_connect(request, client_id, server_id):
     controller.connect()
@@ -100,13 +121,15 @@ def handle_slew_to_azimuth(request, client_id, server_id):
     
     try:
         azimuth_value = float(azimuth)
+        if azimuth_value > 360 or azimuth_value < 0:
+            raise ValueError()
         controller.slew_to_azimuth(azimuth_value)
         return alpaca_response(client_id=client_id, server_id=server_id)
 
     except ValueError:
         return alpaca_response(
             error_number=1025, 
-            error_message="Valor de azimut inválido. Debe ser un float.",
+            error_message="Valor de azimut inválido. Debe ser un float entre 0 y 360.",
             client_id=client_id,
             server_id=server_id
         )

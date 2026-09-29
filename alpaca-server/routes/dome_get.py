@@ -4,7 +4,7 @@ from flask import Flask, Response, request
 from controller import AlpacaException, controller
 from logger import logger
 
-SUPPORTED_ACTIONS = [ 'openwithoutflap', 'getflapstatus' ]
+SUPPORTED_ACTIONS = [ 'openwithoutflap', 'getflapstatus', 'geterror', 'clearerror' ]
 
 def handle_not_implemented(request, client_id, server_id):
     return alpaca_response(
