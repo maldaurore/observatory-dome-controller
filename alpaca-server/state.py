@@ -26,5 +26,6 @@ class DomeState:
     shutter_online: bool = None
     shutter_status: ShutterStatus = None
     flap_status: FlapStatus = None
-    error: str = ""
+    error: bool = False
+    error_number: int = 0
     error_message: str = ""
