@@ -19,6 +19,7 @@ class Msg:
 class SimpleMQTTWrapper:
     def __init__(self):
         self.on_message = None
+        self.connected = False
 
         self._client = MQTTClient(
             client_id=CLIENT_ID,
@@ -39,6 +40,7 @@ class SimpleMQTTWrapper:
         print(f"Conectando al broker MQTT en {BROKER_HOST}...")
         self._client.connect()
         print("Conectado al broker MQTT")
+        self.connected = True
 
         self._client.subscribe(TOPIC_COMMANDS)
         print("Suscrito a", TOPIC_COMMANDS)
@@ -85,8 +87,9 @@ class SimpleMQTTWrapper:
         self._client.check_msg()
 
     def reconnect(self):
-        wlan = network.WLAN(network.STA_IF)
+        self.connected = False
 
+        wlan = network.WLAN(network.STA_IF)
         print("Reconectando MQTT...")
 
         while not wlan.isconnected():
@@ -98,25 +101,20 @@ class SimpleMQTTWrapper:
         except:
             pass
 
-        time.sleep(1)
-
         while True:
             try:
                 self._client = self._create_client()
                 self._client.connect()
                 self._client.set_callback(self._internal_callback)
                 self._client.subscribe(TOPIC_COMMANDS)
-                self._client.set_last_will(
-                    TOPIC_EVENTS,
-                    json.dumps(WILL_PAYLOAD),
-                    retain=True,
-                    qos=1
-                )
+                self.connected = True
                 self.publish_message({"shutter_online": True})
                 print("Reconectado")
                 break
-            except Exception as e:
-                print("Error reconectando MQTT:", e)
-                time.sleep(2)
+            except Exception:
+                # No es error del controlador.
+                # No llamar a log_error()
+                print("Broker no disponible, reintentando...:")
+                time.sleep(1)
 
 client = SimpleMQTTWrapper()

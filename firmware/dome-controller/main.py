@@ -3,6 +3,9 @@ import time
 from base import Base
 from mqtt_client import client
 from machine import Pin, Encoder
+import sys
+
+LOG_FILE = "error.log"
 
 device = Base(client)
 
@@ -11,8 +14,19 @@ COMMANDS = {
     "findhome": device.findHome,
     "park": device.park,
     "slewtoazimuth": device.slewToAzimuth,
-    "get_state": device.getState
+    "getstate": device.getState,
+    "clearerror": device.clearError,
 }
+
+def log_error(context, exc):
+    try:
+        with open(LOG_FILE, "a") as f:
+            f.write("\n")
+            f.write("[{}] ERROR: {}\n".format(time.time(), context))
+            sys.print_exception(exc, f)
+
+    except Exception:
+        pass
 
 def on_message(client, msg):
     try:
@@ -21,11 +35,13 @@ def on_message(client, msg):
         cmd = payload.get("cmd")
     
         if cmd in COMMANDS:
+            if device.hasError() and cmd not in ("clearerror", "getstate", "abortslew"):
+                return
             handler = COMMANDS[cmd]
             return handler(payload)
     
     except Exception as e:
-        print(f"Error procesando mensaje: {e}")
+        log_error("on_message", e)
     
 def main():
     client.on_message = on_message
@@ -34,11 +50,27 @@ def main():
 
     try:
         while True:
+
             try:
                 client.loop_once()
-                device.update()
+
             except OSError as e:
-                print("OSError:", e)
+                print("MQTT desconectado:", e)
+                client.connected = False
+
+            except Exception as e:
+                log_error("mqtt/loop", e)
+
+            try:
+                device.update()
+
+            except Exception as e:
+                device.setError(1284)
+                log_error("main/update", e)
+
+            # Si el domo está idle y MQTT desconectado,
+            # se puede entrar en un reconnect() bloqueante
+            if not client.connected and not device.isSlewing():
                 client.reconnect()
 
             time.sleep(0.01)
@@ -47,8 +79,8 @@ def main():
         print("Cerrando...")
         device.abortSlew()
 
-    except Exception:
-        pass
+    except Exception as e:
+        log_error("main", e)
 
 if __name__ == "__main__":
     main()

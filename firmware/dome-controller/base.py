@@ -2,9 +2,12 @@ from machine import Pin, Encoder
 import time
 import ujson as json
 
+ENCODER_STALL_ERROR= 1282
+FIND_HOME_ERROR= 1283
+
 PULSOS_POR_ROTACION = 118745
 PULSOS_POR_GRADO =  PULSOS_POR_ROTACION / 360
-HOME_POSITION = 146.0
+HOME_POSITION = 142.0
 FIND_HOME_TIMEOUT = 60000
 TOLERANCIA = 2
 UMBRAL_INERCIA = 5
@@ -17,7 +20,9 @@ class Base:
       "at_park": False,
       "azimuth": None,
       "at_home": False,
-      "base_online": True
+      "base_online": True,
+      "error": False,
+      "error_code": 0
     }
     self.last_state = None
     self.last_serialized_state = ""
@@ -42,6 +47,9 @@ class Base:
     self.use_inertia_stop = False
 
     self.encoder = Encoder(0, Pin(25), Pin(33), x=4)
+    self.encoder.filter(200)
+    self.encoder.filter_enable()
+
     self.last_encoder_value = self.encoder.value()
     self.encoder_stall_timer = None
 
@@ -72,7 +80,7 @@ class Base:
         return False
 
     if time.ticks_diff(now, self.encoder_stall_timer) > 2000:
-        print("ERROR: no se detectó movimiento del codificador.")
+        self.setError(1282)
         self.abort_requested = True
         return True
 
@@ -81,7 +89,7 @@ class Base:
   def _check_find_home_timeout(self):
     now = time.ticks_ms()
     if time.ticks_diff(now, self.find_home_start_time) > FIND_HOME_TIMEOUT:
-      print("ERROR: no se pudo encontrar home.")
+      self.setError(FIND_HOME_ERROR)
       self.abort_requested = True
       return True
     
@@ -264,7 +272,6 @@ class Base:
 
   def _update_azimuth(self):
     encoder_value = self.encoder.value() % PULSOS_POR_ROTACION
-    self.encoder.value(encoder_value)
 
     azimuth = encoder_value / PULSOS_POR_GRADO
     self.state["azimuth"] = azimuth
@@ -405,3 +412,18 @@ class Base:
       self.last_serialized_state = json.dumps(self.state)
       self.last_state = self.state.copy()
     self.client.publish_message(self.last_serialized_state)
+
+  def setError(self, code):
+    self.state["error"] = True
+    self.state["error_code"] = code
+    self.abortSlew({})
+
+  def hasError(self):
+    return self.state["error"]
+
+  def clearError(self, payload):
+    self.state["error"] = False
+    self.state["error_code"] = 0
+
+  def isSlewing(self):
+    return self.state["dome_slewing"]

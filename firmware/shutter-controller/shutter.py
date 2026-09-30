@@ -2,6 +2,9 @@ from machine import Pin
 import time
 import ujson as json
 
+OPEN_TIMEOUT_ERROR = 1285
+CLOSE_TIMEOUT_ERROR = 1286
+
 class Actions:
   OPEN = 0
   FREE_FLAP = 2
@@ -29,7 +32,9 @@ class Shutter:
     self.state = {
       "shutter_status": None,
       "flap_status": None,
-      "shutter_online": True
+      "shutter_online": True,
+      "error": False,
+      "error_code": 0
     }
     self.last_state = None
     self.last_serialized_state = ""
@@ -156,11 +161,10 @@ class Shutter:
       if timeout is not None:
         if time.ticks_diff(now, self.action_start_time) > timeout:
           print("ERROR: tiempo de espera excedido en acción", self.current_action)
-          self._stop_motors()
-          self.desired_action = None
-          self.action_start_time = None
-          self._reset_timers()
-          self.current_action = None
+          if self.current_action == Actions.OPEN:
+            self.setError(OPEN_TIMEOUT_ERROR)
+          elif self.current_action == Actions.CLOSE:
+            self.setError(CLOSE_TIMEOUT_ERROR)
 
     if self.current_action == Actions.OPEN:
       self._update_open()
@@ -258,3 +262,23 @@ class Shutter:
   def _reset_timers(self):
     self.open_confirm_start = None
     self.close_confirm_start = None
+
+  def setError(self, code):
+    self.state["error"] = True
+    self.state["error_code"] = code
+
+    self._stop_motors()
+    self.desired_action = None
+    self.action_start_time = None
+    self._reset_timers()
+    self.current_action = None
+
+  def hasError(self):
+    return self.state["error"]
+
+  def clearError(self):
+    self.state["error"] = False
+    self.state["error_code"] = 0
+
+  def isSlewing(self):
+    return self.state["shutter_status"] in (ShutterStatus.OPENING, ShutterStatus.CLOSING)
