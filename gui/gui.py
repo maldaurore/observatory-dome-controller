@@ -360,8 +360,8 @@ class DomeGUI:
 
         ttk.Button(
             special_frame,
-            text="Abrir sin gajo",
-            command=self.open_without_flap
+            text="Abrir con gajo",
+            command=self.open_with_flap
         ).pack(
             expand=True
         )
@@ -509,10 +509,10 @@ class DomeGUI:
     # FUNCIONES PERSONALIZADAS
     # ============================================================
 
-    def open_without_flap(self):
+    def open_with_flap(self):
         self.safe_call(
             lambda: self.dome.Action(
-                "openwithoutflap",
+                "openwithflap",
                 ""
             )
         )

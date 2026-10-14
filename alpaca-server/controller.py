@@ -88,7 +88,7 @@ class DomeController:
         self.state.connected = False
         return
 
-    def open_without_flap(self):
+    def open_shutter(self):
         if not self.state.connected:
             raise AlpacaException(1031, "El dispositivo no está conectado.")
         if self.state.error:
@@ -99,9 +99,9 @@ class DomeController:
         if self.state.flap_status == 0 and (self.state.shutter_status == 0 or self.state.shutter_status == 2 or self.state.shutter_status == 3):
             raise AlpacaException(1035, "La cortina no está cerrada. Debe estar cerrada para abrir sin gajo.")
         
-        # Enviar comando solo si el gajo está abajo y cortina está cerrada o cerrándose. Cuando la cortina está abriéndose o
+        # Enviar comando solo si el gajo está abajo y cortina está cerrada. Cuando la cortina está abriéndose o
         # está abierta y el gajo está abajo, se asume que se está abriedo o está abierta sin gajo y no se hace nada.
-        if (self.state.flap_status == 1 and self.state.shutter_status == 1) or (self.state.flap_status == 1 and self.state.shutter_status == 3):
+        if (self.state.flap_status == 1 and self.state.shutter_status == 1):
             self.send_command(
                 {"cmd": "openwithoutflap"},
                 SHUTTER_COMMANDS_TOPIC
@@ -135,14 +135,14 @@ class DomeController:
         )
         return
 
-    def open_shutter(self):
+    def open_with_flap(self):
         if not self.state.connected:
             raise AlpacaException(1031, "El dispositivo no está conectado.")
         if self.state.error:
             raise AlpacaException(self.state.error_number, self.state.error_message)
         if not self.state.shutter_online:
             raise AlpacaException(1035, "Cortina no conectada. Mueva el domo a Home para energizar la cortina")
-        if self.state.shutter_status == 1 or 3:
+        if self.state.shutter_status == 1:
             self.send_command(
                 {"cmd": "openshutter"},
                 SHUTTER_COMMANDS_TOPIC

@@ -30,9 +30,9 @@ def handle_action(request, client_id, server_id):
         )
 
     match action:
-        case 'openwithoutflap':
-            controller.open_without_flap()
-            return alpaca_response(client_id=client_id, server_id=server_id, value='Abriendo cortina sin gajo.')
+        case 'openwithflap':
+            controller.open_with_flap()
+            return alpaca_response(client_id=client_id, server_id=server_id, value='Abriendo cortina con gajo.')
         case 'getflapstatus':
             flap_status = controller.get_flap_status()
             return alpaca_response(client_id=client_id, server_id=server_id, value=flap_status)
