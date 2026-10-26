@@ -23,6 +23,7 @@ This procedure is only required when:
 
 Routine software updates do **not** require reflashing the firmware. In those cases, only the MicroPython source files need to be copied to the ESP32 filesystem as described in the next section.
 
+The software and electronics were designed for a generic 30-pin development board based on the ESP32-WROOM-32 module. Consider this when replacing the board.
 
 Connect the ESP32 to the computer using a USB cable.
 

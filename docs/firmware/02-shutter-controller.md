@@ -6,9 +6,9 @@ This document describes how to install and update the firmware of the shutter co
 >
 > The shutter controller uses the official MicroPython firmware for the ESP32.
 >
-> The latest firmware can be downloaded from:
+> Its software was developed using MicroPython version 1.27.0, which is available in the firmware/shutter-controller directory. The same version can be downloaded from:
 >
-> https://micropython.org/download/ESP32_GENERIC/
+> https://micropython.org/resources/firmware/ESP32_GENERIC-20251209-v1.27.0.bin
 
 ---
 
@@ -20,6 +20,8 @@ This procedure is only required when:
 - Recovering a corrupted firmware installation.
 
 Routine software updates do **not** require reflashing the firmware. In those cases, only the MicroPython source files need to be copied to the ESP32 filesystem as described in the next section.
+
+The software and electronics were designed for a generic 30-pin development board based on the ESP32-WROOM-32 module. Consider this when replacing the board.
 
 Connect the ESP32 to the computer using a USB cable.
 
@@ -40,13 +42,13 @@ esptool.py --port PORTNAME erase_flash
 Once the flash memory has been erased, install the downloaded MicroPython firmware:
 
 ```bash
-esptool.py --baud 460800 write_flash 0x1000 ESP32_GENERIC.bin
+esptool.py --baud 460800 write_flash 0x1000 FIRMWARE_FILE_NAME.bin
 ```
 
 If necessary, specify the serial port:
 
 ```bash
-esptool.py --port PORTNAME --baud 460800 write_flash 0x1000 ESP32_GENERIC.bin
+esptool.py --port PORTNAME --baud 460800 write_flash 0x1000 FIRMWARE_FILE_NAME.bin
 ```
 
 ---
